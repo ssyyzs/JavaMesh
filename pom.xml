@@ -27,6 +27,11 @@
         <dependency.clean.skip.flag>${dependency.skip.flag}</dependency.clean.skip.flag>
         <shade.common.prefix>com.huawei</shade.common.prefix>
         <shade.distinct.prefix>${artifactId}</shade.distinct.prefix>
+        <buffered.shade.skip.flag>true</buffered.shade.skip.flag>
+        <buffered.shade.agent.dir>${javaagent.dir}/${package.temp.dir}/agent</buffered.shade.agent.dir>
+        <!-- skywalking agent目录 -->
+        <skywalking.source.dir>D:\IdeaProject\githubProject\X_PaaS_APM\skywalking-agent</skywalking.source.dir>
+        <skywalking.target.dir>${buffered.shade.agent.dir}/skywalking</skywalking.target.dir>
     </properties>
     <modules>
         <module>lubanops-apm-javaagent-bootstrap</module>
@@ -186,9 +191,41 @@
         </profile>
     </profiles>
     <build>
-        <finalName>original-${project.artifactId}-${javaagent.version}</finalName>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>com.huawei.hwclouds.lubanops</groupId>
+                    <artifactId>buffered-shade-plugin</artifactId>
+                    <version>1.0.0</version>
+                    <executions>
+                        <execution>
+                            <id>buffered-shade</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>shade</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <skip>${buffered.shade.skip.flag}</skip>
+                        <relocations>
+                            <relocation>
+                                <sourceDirectory>${skywalking.source.dir}</sourceDirectory>
+                                <targetDirectory>${skywalking.target.dir}</targetDirectory>
+                                <relocatePatterns>
+                                    <relocatePattern>
+                                        <sourcePattern>
+                                            org.apache.skywalking.apm.dependencies.net.bytebuddy
+                                        </sourcePattern>
+                                        <targetPattern>
+                                            ${shade.common.prefix}.net.bytebuddy
+                                        </targetPattern>
+                                    </relocatePattern>
+                                </relocatePatterns>
+                            </relocation>
+                        </relocations>
+                    </configuration>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
@@ -202,8 +239,7 @@
                         </execution>
                     </executions>
                     <configuration>
-                        <finalName>${project.artifactId}-${javaagent.version}</finalName>
-                        <outputDirectory>${package.dir}</outputDirectory>
+                        <outputFile>${package.dir}/${project.artifactId}-${javaagent.version}.jar</outputFile>
                         <relocations>
                             <relocation>
                                 <pattern>com.alibaba</pattern>
@@ -274,9 +310,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.2.0</version>
-                <configuration>
-                    <outputDirectory>${project.build.directory}</outputDirectory>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
