@@ -10,11 +10,24 @@
     <properties>
         <package.relative.dir/>
         <javaagent.package.name>apm-javaagent</javaagent.package.name>
+        <buffered.shade.skip.flag>false</buffered.shade.skip.flag>
     </properties>
     <dependencies>
         <dependency>
             <groupId>com.huawei.hwclouds.lubanops</groupId>
             <artifactId>lubanops-apm-javaagent-bootstrap</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.skywalking</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>8.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.skywalking</groupId>
+            <artifactId>apm-agent</artifactId>
+            <version>8.1.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -28,6 +41,10 @@
     </dependencies>
     <build>
         <plugins>
+            <plugin>
+                <groupId>com.huawei.hwclouds.lubanops</groupId>
+                <artifactId>buffered-shade-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
@@ -44,8 +61,11 @@
                                 <fileset>
                                     <directory>${package.dir}</directory>
                                     <includes>
-                                        <include>${javaagent.package.name}.jar</include>
+                                        <include>*${javaagent.package.name}*.jar</include>
                                     </includes>
+                                </fileset>
+                                <fileset>
+                                    <directory>${buffered.shade.agent.dir}</directory>
                                 </fileset>
                             </filesets>
                         </configuration>
@@ -76,7 +96,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <configuration>
-                    <finalName>${javaagent.package.name}</finalName>
+                    <outputFile>${package.dir}/${javaagent.package.name}.jar</outputFile>
                 </configuration>
             </plugin>
         </plugins>

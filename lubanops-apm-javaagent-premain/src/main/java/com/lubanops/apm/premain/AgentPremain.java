@@ -1,27 +1,11 @@
 package com.lubanops.apm.premain;
 
-import com.huawei.apm.bootstrap.config.ConfigLoader;
-import com.huawei.apm.bootstrap.serialize.SerializerHolder;
-import com.huawei.apm.classloader.ClassLoaderManager;
-import com.huawei.apm.classloader.PluginClassLoader;
-import com.huawei.apm.premain.BootstrapEnhance;
-import com.huawei.apm.premain.ByteBuddyAgentBuilder;
-import com.huawei.apm.premain.NoneNamedListenerBuilder;
-import com.lubanops.apm.bootstrap.commons.LubanApmConstants;
-import com.lubanops.apm.bootstrap.log.LogFactory;
-import com.lubanops.apm.bootstrap.log.LogPathUtils;
-import com.lubanops.apm.premain.agent.AgentStatus;
-import com.lubanops.apm.premain.agent.ArgumentBuilder;
-import com.lubanops.apm.premain.classloader.LopsUrlClassLoader;
-import com.lubanops.apm.premain.log.CollectorLogFactory;
-import com.lubanops.apm.premain.utils.LibPathUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.security.AccessController;
 import java.security.CodeSource;
 import java.security.PrivilegedAction;
@@ -32,6 +16,25 @@ import java.util.Map;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.lubanops.apm.bootstrap.commons.LubanApmConstants;
+import com.lubanops.apm.bootstrap.log.LogFactory;
+import com.lubanops.apm.bootstrap.log.LogPathUtils;
+import com.lubanops.apm.premain.agent.AgentStatus;
+import com.lubanops.apm.premain.agent.ArgumentBuilder;
+import com.lubanops.apm.premain.classloader.LopsUrlClassLoader;
+import com.lubanops.apm.premain.log.CollectorLogFactory;
+import com.lubanops.apm.premain.utils.LibPathUtils;
+
+import com.huawei.apm.bootstrap.agent.ExtAgentManager;
+import com.huawei.apm.bootstrap.config.ConfigLoader;
+import com.huawei.apm.bootstrap.definition.EnhanceDefinition;
+import com.huawei.apm.bootstrap.serialize.SerializerHolder;
+import com.huawei.apm.classloader.ClassLoaderManager;
+import com.huawei.apm.classloader.PluginClassLoader;
+import com.huawei.apm.premain.BootstrapEnhance;
+import com.huawei.apm.premain.ByteBuddyAgentBuilder;
+import com.huawei.apm.premain.NoneNamedListenerBuilder;
 
 public class AgentPremain {
 
@@ -61,8 +64,10 @@ public class AgentPremain {
                 // 初始化序列化器
                 SerializerHolder.initialize(PluginClassLoader.getDefault());
                 ClassLoader parent = Thread.currentThread().getContextClassLoader();
+                ClassLoader spiLoader = ClassLoaderManager.getTargetClassLoader(parent);
                 // 配置初始化
-                ConfigLoader.initialize(agentArgs, ClassLoaderManager.getTargetClassLoader(parent));
+                ConfigLoader.initialize(agentArgs, spiLoader);
+                ExtAgentManager.init(spiLoader, agentArgs, instrumentation, LibPathUtils.getExtAgentDir());
                 LopsUrlClassLoader classLoader = (LopsUrlClassLoader) AccessController.doPrivileged(
                     new PrivilegedAction() {
                         @Override
@@ -88,8 +93,6 @@ public class AgentPremain {
                 logger.log(Level.SEVERE, "[APM PREMAIN]The JavaAgent is loaded repeatedly.");
             }
             AgentPremain.agentStatus = AgentStatus.STARTED;
-        } catch (InvocationTargetException e) {
-            logger.log(Level.SEVERE, "[APM PREMAIN]Loading javaagent failed", e.getTargetException());
         } catch (Exception e) {
             logger.log(Level.SEVERE, "[APM PREMAIN]Loading javaagent failed", e);
         }
